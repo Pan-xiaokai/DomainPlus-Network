@@ -12,7 +12,7 @@ tensorflow 1.13
 opencv-python 4.5.4  
 
 
-1. download datasets: https://cseweb.ucsd.edu/ viscomp/projects/SIG17HDR/  
+1.download datasets: https://cseweb.ucsd.edu/ viscomp/projects/SIG17HDR/  
 2.python data.py  
 Train  
 3.python main.py  
