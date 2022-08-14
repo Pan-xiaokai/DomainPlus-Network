@@ -6,14 +6,10 @@ from common import u_law_numpy, LDR2HDR
 MAX_PIX_VAL_train = 255
 MAX_PIX_VAL_test = 255
 MAX_PIX_VAL_test16 = 65535
-#MAX_PIX_VAL = 255
+
 CROP_SIZE = 320
 TRAINING_SCENE_PATH = 'datasets/Training/'
-#TRAINING_SCENE_PATH = 'F:\\code\\HDR_IMAGING\\dataset\\'
 TEST_SCENE_PATH = 'datasets/Test/'
-#TRAINING_SCENE_PATH = 'F:\\code\\HDR_Imaging\\Sendataset\\'
-
-
 
 def read_expo(file_path):
     with open(file_path) as fp:
@@ -37,31 +33,26 @@ def list_filter(file_list, tail):
 	return r
 
 def pre_process(img, val):
-    #img = img // 256
     img = img.astype(np.float32)
     img = img/val
     return img
 
 def pre_process_train(img):
-    #img = img // 256
     img = img.astype(np.float32)
     img = img/MAX_PIX_VAL_train
     return img
     
 def pre_process_train16(img):
-    #img = img // 256
     img = img.astype(np.float32)
     img = img/MAX_PIX_VAL_test16
     return img
 
 def pre_process_test(img):
-    #img = img // 256
     img = img.astype(np.float32)
     img = img/MAX_PIX_VAL_test
     return img
 
 def pre_process_test16(img):
-    #img = img // 256
     img = img.astype(np.float32)
     img = img/MAX_PIX_VAL_test16
     return img
@@ -69,7 +60,7 @@ def pre_process_test16(img):
 def generate_anchors(shape, size):
    def process_line(l, size):
       n = math.ceil(l/size)
-      step = 64#math.ceil(l/n)//2
+      step = 64
       pos = 0
       pos_list = []
       while(pos +size < l+step):
@@ -92,22 +83,15 @@ def generate_anchors(shape, size):
 
 def load_train_scene(scene_path, h5_path, total_count):
     file_list = os.listdir(scene_path)
-    #load exposure times
     expos = read_expo(scene_path + 'exposure.txt')
-    #load hdr groundtruth
-    #hdr = cv2.imread(scene_path + 'HDRImg.hdr', flags = cv2.IMREAD_ANYDEPTH)
     hdr = cv2.imread(scene_path + 'HDRImg.hdr', flags=-1)
     #load ldr inputs
     input_img_list = list_filter(file_list, '.tif')
     ldr_list = []
     assert len(input_img_list) == len(expos)
     for i, img_path in enumerate(input_img_list):
-        #img = cv2.imread(scene_path+img_path, -1)
         img = cv2.imread(scene_path+img_path, flags =1)
-        #print(img.shape, np.max(img))
-        #ldr = pre_process(img)
         ldr_list.append(img)
-        #ldr_list.append(LDR2HDR(ldr, expos[i]/expos[1]))
 
     input_ldrs = np.concatenate(ldr_list, axis=-1)
     #crop image into patches for training
@@ -140,10 +124,7 @@ def load_test_scene(scene_path, h5_path, total_count):
     assert len(input_img_list) == len(expos)
     for i, img_path in enumerate(input_img_list):
         img = cv2.imread(scene_path+img_path, -1)
-        #print(img.shape, np.max(img))
-        #ldr = pre_process(img)
         ldr_list.append(img)
-        #ldr_list.append(LDR2HDR(ldr, expos[i]/expos[1]))
 
     input_ldrs = np.concatenate(ldr_list, axis=-1)
     total_count += 1
@@ -152,8 +133,6 @@ def load_test_scene(scene_path, h5_path, total_count):
     f['ldr'] = input_ldrs
     f['hdr'] = hdr
     f['expos'] = np.array(expos)
-    #_hdr = np.round(u_law_numpy(hdr)*255).astype(np.uint8)
-    #cv2.imwrite(get_name(total_count)+'_gt.png', _hdr)
     return total_count
 
 def prepare_training_dataset(training_scene_path, h5_path):
@@ -175,11 +154,6 @@ def prepare_test_dataset(test_scene_path, h5_path):
         print('loading paper scene ' + scene)
         count = load_test_scene(test_scene_path+'PAPER/'+scene+'/', h5_path, count)
 
-    # mine_scene = os.listdir(test_scene_path+'MINE\\')
-    # for i, scene in enumerate(mine_scene):
-    #     print('loading mine scene ' + scene)
-    #     count = load_test_scene(test_scene_path+'MINE\\'+scene+'\\', h5_path, count)
-    #
     extra_scene = os.listdir(test_scene_path+'EXTRA/')
     extra_scene.sort()
     for i, scene in enumerate(extra_scene):
@@ -189,4 +163,13 @@ def prepare_test_dataset(test_scene_path, h5_path):
 
 if __name__ == "__main__":
     prepare_training_dataset(TRAINING_SCENE_PATH, 'h5_data_raw/Training/')
-    prepare_test_dataset(TEST_SCENE_PATH, 'h5_data_raw/Training/')
+    prepare_test_dataset(TEST_SCENE_PATH, 'h5_data_raw/Test/')
+
+
+'''
+img = cv2.imread('PAPER/BarbequeDay/HDRImg.hdr', flags = cv2.IMREAD_ANYDEPTH)
+print(img.shape, img.dtype)
+print(np.max(img))
+
+print(read_expo('PAPER/BarbequeDay/exposure.txt'))
+'''
