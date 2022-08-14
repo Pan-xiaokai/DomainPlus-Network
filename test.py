@@ -83,11 +83,7 @@ def fast_validate(model, ldrs_list, hdr_list, expos_list, crop = True, write=Fal
         _hdr = np.round(_hdr[0]*65535).astype(np.uint16)
         return _hdr
     valid_psnr = 0
-    valid_ssim = 0
-    valid_psnr_mu = 0
-    valid_psnr_L = 0
-    valid_ssim_mu = 0
-    valid_ssim_L = 0
+
     for i, ldrs in enumerate(ldrs_list, 0):
         hdr = hdr_list[i]
         expos = expos_list[i]
@@ -166,7 +162,7 @@ model = modelv2(64, input_chs, nBlocks=3, Res=False, use_vgg=use_vgg, vgg_model=
 
 test_ldrs_list, test_hdr_list, test_expos_list = load_test_sequences(test_data_path)
 
-model.load_weights('model_new/mymodelv2_best.h5')
+model.load_weights('model/DPN_best.h5')
 
 print(fast_validate(model, test_ldrs_list, test_hdr_list, test_expos_list, crop=True, write=True, use_pre=use_pre))
 exit(0)
