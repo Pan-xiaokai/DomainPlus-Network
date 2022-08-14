@@ -102,7 +102,7 @@ def fast_validate(model, ldrs_list, hdr_list, expos_list, crop = True, write=Fal
             _hdr = _hdr[0]
 
         if multi_output:
-            _hdr = _hdr[-1]          
+            _hdr = _hdr[-1]
         _psnr = 10*log10(1/np.mean((u_law_numpy(_hdr) - u_law_numpy(hdr))**2))
         valid_psnr += _psnr
         if write:
@@ -216,8 +216,8 @@ for epoch in range(20000):
         valid_psnr = fast_validate(model, test_ldrs_list, test_hdr_list, test_expos_list, crop=True, multi_output=multi_output, use_pre=use_pre, use_vgg=use_vgg)#validate(model, test_data_path)
         
         if valid_psnr > min_loss:
-            
-            model.save_weights('model_new/DPN_best.h5')
+
+            model.save_weights('model/DPN_best.h5')
 
             if valid_psnr - min_loss < 1e-3:
                 fail_count += 1
