@@ -8,7 +8,6 @@ def pretrain_vgg16():
     vgg_model = VGG16(include_top=False, input_shape=(None, None, 3))
     loss_model = models.Model(vgg_model.input, vgg_model.get_layer('block3_conv3').output)
     loss_model.trainable = False
-    # vgg_model.summary()
     return loss_model
 
 
@@ -20,24 +19,20 @@ def conv_model(nFeat, in_channels):
 
 def conv_model_multiscale(nFeat, in_channels):
     x = layers.Input(shape=(None, None, in_channels))
-    #x = layers.Input(shape=(992, 1488, in_channels))
     x1 = Space2Depth(scale=2)(x)
     x2 = Space2Depth(scale=2)(x1)
     x3 = Space2Depth(scale=2)(x2)
-    x4 = Space2Depth(scale=2)(x3)
+
     t = conv_lrelu(x, nFeat, 3)
     t1 = conv_lrelu(x1, nFeat, 3)
     t2 = conv_lrelu(x2, nFeat, 3)
-    # t2 = conv_lrelu(t2, nFeat, 3)
+
     t3 = conv_lrelu(x3, nFeat, 3)
-    # t4 = conv_lrelu(x4, nFeat, 3)
-    # t3 = conv_lrelu(t3, nFeat, 3)
     return models.Model(x, [t, t1, t2, t3])
 
 
 def conv_model_multiscale_5(nFeat, in_channels):
     x = layers.Input(shape=(None, None, in_channels))
-    #x = layers.Input(shape=(992, 1488, in_channels))
     x1 = Space2Depth(scale=2)(x)
     x2 = Space2Depth(scale=2)(x1)
     x3 = Space2Depth(scale=2)(x2)
@@ -46,10 +41,8 @@ def conv_model_multiscale_5(nFeat, in_channels):
     t = conv_lrelu(x, nFeat, 3)
     t1 = conv_lrelu(x1, nFeat, 3)
     t2 = conv_lrelu(x2, nFeat, 3)
-    # t2 = conv_lrelu(t2, nFeat, 3)
     t3 = conv_lrelu(x3, nFeat, 3)
     t4 = conv_lrelu(x4, nFeat, 3)
-    # t3 = conv_lrelu(t3, nFeat, 3)
     return models.Model(x, [t, t1, t2, t3, t4])
 
 
@@ -86,7 +79,6 @@ def Decomp(shape):
     u = layers.Lambda(lambda x: get_u(x))(x)
     s = layers.Lambda(lambda x: get_s(x))([x, u])
     c = layers.Lambda(lambda x: get_c(x))(s)
-    # s = layers.Lambda(lambda x: div(x))([s,c])
     return models.Model(x, [u, c, s])
 
 
@@ -95,7 +87,6 @@ def Recons(n_channels):
         uc, s = x
         return uc[:, :, :, 1::2] * s + uc[:, :, :, 0::2]
 
-    # u = layers.Input(shape=(None, None, 1))
     uc = layers.Input(shape=(None, None, 2))
     s = layers.Input(shape=(None, None, n_channels))
     y = layers.Lambda(lambda x: _recons(x))([uc, s])
@@ -129,7 +120,6 @@ def dense_block(x, nFilters):
         _t = conv_lrelu(t, nFilters // 2, 3, dilation_rate=d)
         t = layers.Concatenate(axis=-1)([t, _t])
     t = conv(t, nFilters, 1)
-    # t = layers.Lambda(lambda x: x*0.1)(t)
     return layers.Add()([x, t])
 
 
@@ -145,12 +135,10 @@ def s_block(ref_s, s, nFilters, nBlocks, nChannels, block_type='res'):
         _s = block(_s, nFilters)
     _s = conv(_s, nChannels, 1)
     y = layers.Add()([ref_s, _s])
-    # y = layers.Lambda(lambda x: normalize(x))(y)
     return y
 
 
 def uc_block(x, nFilters):
-    # t0 = Space2Depth(scale=2)(x)
     t0 = conv_lrelu(x, nFilters, 3)
     t = conv_lrelu(t0, nFilters * 2, 3, strides=(2, 2))
     t = layers.GlobalAveragePooling2D()(t)
@@ -165,10 +153,12 @@ def uc_block(x, nFilters):
         t = layers.Concatenate(axis=-1)([t, _t])
     t = conv_lrelu(t, nFilters, 1)
     y = conv(t, 2, 3)
-    # y = Depth2Space(scale=2)(t)
     return y
 
-  def modelv2(nFeat, in_channels, nBlocks, Res=False, use_vgg=False, vgg_model=None):
+
+
+
+def modelv2(nFeat, in_channels, nBlocks, Res=False, use_vgg=False, vgg_model=None):
     #attention fusion before sigmoid
     def DRDB(x, growth, d_list, alpha=1):
         def _bp1(_x):
@@ -193,10 +183,7 @@ def uc_block(x, nFilters):
         t3 = _bp(_x)
         t4 = _bp(_x)
         t = layers.Concatenate(axis=-1)([t1, t2, t3, t4])
-        # t = layers.Add()([x,t])
-        # t = ScaleLayer(s=0.1)(t)
-        # t = ToneMapping()(t)
-        #t = layers.Lambda(lambda x:x*0)(t)
+
         return layers.Add()([x, t])
 
     def attention_fusion_block(att, _att, alpha=0.5):
@@ -207,12 +194,6 @@ def uc_block(x, nFilters):
         _att_up = layers.UpSampling2D()(_att)
         att_fuse = layers.Lambda(lambda x: fuse(x, alpha))([_att_up, att])
         return att_fuse
-
-    # def attention_block(f1, f_ref, nFeat):
-    #     f = layers.Concatenate(axis=-1)([f1, f_ref])
-    #     att = conv(f, 1, 3)
-    #     att = layers.Activation('sigmoid')(att)
-    #     return att
 
     def multiscale_attention_block(f_x1, f1_x1, f2_x1, f3_x1,
                                    f_x2, f1_x2, f2_x2, f3_x2):
@@ -250,34 +231,22 @@ def uc_block(x, nFilters):
         t = x
         for i in range(nBlocks):
             t = DRDB(t, nFeat // 2, (1, 2, 3, 2, 1), alpha)
-            # concat_list.append(t)
-        # t = layers.Concatenate(axis=-1)(concat_list)
-        # t = conv(t, nFeat, 1)
         return t
 
     def baseline(f, nBlocks, alpha, up=False):
         f_wav = WaveletConvLayer()(f)
-        # f_wav0 = conv(f_wav, nFeat, 3)
         _f_wav = bandpass_branch(f_wav, nBlocks, 1.0)
-        # _f_wav = conv(_f_wav, nFeat*4, 3)
-        # _f_wav = layers.Add()([f_wav, _f_wav])
         _f = WaveletInvLayer()(_f_wav)
-        #_f = layers.Lambda(lambda x:x*0)(_f)
         _f = layers.Add()([f, _f])
 
         if up:
             _f = conv(_f, nFeat * 4, 3)
-            # _f0 = tile_layer(scale=2)(f)
-            # _f = layers.Add()([_f, _f0])
             _f = Depth2Space(scale=2)(_f)
         return _f
 
     x1 = layers.Input(shape=(None, None, in_channels))
     x2 = layers.Input(shape=(None, None, in_channels))
     x3 = layers.Input(shape=(None, None, in_channels))
-    #x1 = layers.Input(shape=(992, 1488, in_channels))
-    #x2 = layers.Input(shape=(992, 1488, in_channels))
-    #x3 = layers.Input(shape=(992, 1488, in_channels))
     output_list = []
 
     cmm = conv_model_multiscale(nFeat, in_channels)
@@ -322,12 +291,7 @@ def uc_block(x, nFilters):
     # f = DRDB(f, nFeat//2, 6, f_ref=f_x2, Res=Res)
     f = baseline(f, nBlocks, 1.0)
     f = conv(f, 3, 3)
-    #f = layers.Lambda(lambda x:x*0)(f)
-    #f1 = layers.Lambda(lambda x:x*0)(f1)
-    #f2 = layers.Lambda(lambda x:x*0)(f2)
-    #f3 = layers.Lambda(lambda x:x*0)(f3)
     f = layers.Add()([f3, f2, f1, f])
-    # f = layers.Add()([f2, f1, f])
     y = layers.Activation('sigmoid')(f)
 
     if use_vgg:
