@@ -13,9 +13,8 @@ from common import *
 
 
 batch_size = 4
-lr = [1e-4, 5e-5, 2.5e-5, 1e-5]
-lr_index = 0
-data_size = 128
+
+data_size = 64
 input_chs = 6
 multi_output = False
 multi_gpu = False
@@ -212,27 +211,6 @@ for epoch in range(20000):
                                     ldrs_batch[:,:,:,input_chs*2:input_chs*3]], 
                                     hdr_batch)
             print('epoch %d %d/%d ---> loss: %.6f'%(epoch+1, itr, total_batches, loss), end='\r')
-    if (epoch+1) % 1 == 0:
-        valid_psnr = fast_validate(model, test_ldrs_list, test_hdr_list, test_expos_list, crop=True, multi_output=multi_output, use_pre=use_pre, use_vgg=use_vgg)#validate(model, test_data_path)
-        
-        if valid_psnr > min_loss:
 
-            model.save_weights('model/DPN_best.h5')
-
-            if valid_psnr - min_loss < 1e-3:
-                fail_count += 1
-            else:
-                fail_count = 0
-            min_loss = valid_psnr
-        else:
-            fail_count += 1
-        print('epoch %d ---> psnr = %.4f, best = %.4f, fails = %d at '%(epoch+1,  valid_psnr, min_loss, fail_count) + datetime.datetime.now().strftime('%H:%M:%S') + ' lr_index = '+str(lr_index))
-        
-        if fail_count == 4:
-            lr_index += 1
-            if lr_index < len(lr):
-                fail_count = 0
-                _compile(model, lr[lr_index], loss_func, use_vgg)
-            else:
-                print('Training is done. The best psnr = %.4f'%(min_loss))
-                exit(0)
+            print('Training is done. The best psnr = %.4f'%(min_loss))
+            exit(0)
