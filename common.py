@@ -123,52 +123,6 @@ def new_loss(y_pred, y_true):
     true_ = new_law(y_true)
     return losses.mae(true_, pred_)
 
-# def ciede2000uloss(y_pred,y_true):
-#     pred_ = u_law(y_pred)
-#     true_ = u_law(y_true)
-
-#     Lab1 = RGB_to_LAB(y_pred[0],y_pred[1],y_pred[2])#, axis = -1)
-#     Lab2 = RGB_to_LAB(y_true[0],y_true[1],y_true[2])#, axis = -1)
-
-#     ciede = CIEDE2000_original_1(Lab1, Lab2)
-#     ciede = tf.reduce_mean(ciede)
-#     mae = losses.mae(true_, pred_)
-#     #print(mae)
-#     #print(ciede)
-#     # ciede = np.mean(ciede)
-#     return mae + 0.001*ciede
-
-def ciede2000uloss(y_pred,y_true):
-    pred_ = u_law(y_pred)
-    true_ = u_law(y_true)
-    #ciede = CIEDE2000(y_true,y_pred)
-    ciede = CIEDE2000(true_, pred_)
-    mae = losses.mae(true_, pred_)
-
-    return mae + ciede
-
-def ciede2000uloss_plus(y_pred, y_true):
-    pred_ = u_law(y_pred)
-    true_ = u_law(y_true)
-    mae = losses.mae(true_, pred_)
-    pred = tf.nn.conv2d(pred_, 3, strides=[1, 5, 5, 1], padding='SAME')
-    true = tf.nn.conv2d(true_, 3, strides=[1, 5, 5, 1], padding='SAME')
-    ciede = CIEDE2000(true, pred)
-
-    return mae + ciede
-
-
-
-def rfftloss(y_pred,y_true):
-    pred_ = u_law(y_pred)
-    true_ = u_law(y_true)
-    pred_1 = tf.signal.rfft(pred_)
-    true_1 = tf.signal.rfft(true_)
-    mae_rfft = losses.mae(true_1, pred_1)
-    mae = losses.mae(true_, pred_)
-
-    return mae + 0.1 * mae_rfft
-
 def MAE(y_pred,y_true):
     return losses.mae(y_true,y_pred)
 
@@ -199,8 +153,8 @@ def linear_fitting_3D_points(points):
         Sum_YZ = Sum_YZ + yi * zi
         Sum_Z2 = Sum_Z2 + zi ** 2
 
-    n = len(points)  
-    den = n * Sum_Z2 - Sum_Z * Sum_Z  
+    n = len(points)
+    den = n * Sum_Z2 - Sum_Z * Sum_Z
     k1 = (n * Sum_XZ - Sum_X * Sum_Z) / den
     b1 = (Sum_X - k1 * Sum_Z) / n
     k2 = (n * Sum_YZ - Sum_Y * Sum_Z) / den
@@ -230,7 +184,7 @@ def get_distance_from_point_to_line(line_point1, line_point2, point):
     d = np.sqrt((x4 - x3) * (x4 - x3) + (y4 - y3) * (y4 - y3) + (z4 - z3) * (z4 - z3))
 
     return d
-    
+
 def calc_d(y_pred, y_true, size):
     input_shape = k.int_shape(y_pred)
     batch, width, length, depth = input_shape
@@ -267,13 +221,6 @@ def calc_d(y_pred, y_true, size):
 
     return distance
 
-def colorline(y_pred, y_true):
-    pred_ = u_law(y_pred)
-    true_ = u_law(y_true)
-    #print(pred_.shape)
-    colorline = calc_d(pred_, true_,4)
-    return colorline
-
 def hdr_merge(im1, im2, im3, expos):
     a1 = np.zeros(im2.shape,dtype=np.float32)
     a2 = np.zeros(im2.shape,dtype=np.float32)
@@ -289,7 +236,7 @@ def hdr_merge(im1, im2, im3, expos):
     #print(np.max(a1), np.max(a2), np.max(a3))
     #return (im1*a1/expos[0]+im2*a2/expos[1]+im3*a3/expos[2])/(a1+a2+a3)
     return (a1*LDR2HDR(im1,expos[0])+a2*LDR2HDR(im2,expos[1])+a3*LDR2HDR(im3,expos[2]))/(a1+a2+a3)
-    
+
 class Sign(layers.Layer):
     def __init__(self, **kwargs):
         super(Sign, self).__init__(**kwargs)
@@ -346,7 +293,6 @@ class Sample(layers.Layer):
         self.kernel = array_ops.tile(self.kernel, [1, 1, input_shape[-1], 1])
 
     def call(self, inputs, **kwargs):
-        #input_shape = k.shape(inputs)
         x = array_ops.pad(inputs,self.padding_size, mode='REFLECT')
         y = k.depthwise_conv2d(x, self.kernel, padding=self.padding, strides=(self.strides,self.strides))
         return y
@@ -380,7 +326,7 @@ class SampleBack(layers.Layer):
         assert int_shape[-1] == window*window*self.output_channels
         h = conv_utils.deconv_length(input_shape[1],self.strides,self.window,self.padding,None)
         w = conv_utils.deconv_length(input_shape[2],self.strides,self.window,self.padding,None)
-        
+
         if self.output_channels == 1:
             y = k.conv2d_transpose(inputs, self.kernel, strides=(self.strides,self.strides), padding= self.padding, output_shape=(input_shape[0],h,w,1))
         else:
@@ -414,7 +360,7 @@ class ToneMapping(layers.Layer):
         self.kernel = self.add_weight(shape=(1,1,1,input_shape[-1]),
                         initializer = initializers.get('ones'),
                         name='mapper')
-    
+
     def call(self, inputs):
         kernel = tf.exp(self.kernel)
         return inputs * kernel
@@ -494,8 +440,6 @@ class adaptive_implicit_trans2(layers.Layer):
         self.kernel = k.variable(value = kernel, dtype = 'float32')
 
     def call(self, inputs):
-        #it_weights = k.softmax(self.it_weights)
-        #self.kernel = self.kernel*it_weights
         kernel = self.kernel*self.it_weights
         y = k.conv2d(inputs,
                         kernel,
@@ -514,7 +458,7 @@ class tile_layer(layers.Layer):
     def call(self, inputs):
         n = self.scale**2
         return array_ops.tile(inputs, [1,1,1,n])
-    
+
     def compute_output_shape(self, input_shape):
         return (input_shape[0], input_shape[1], input_shape[2], input_shape[3]*self.scale**2)
 
@@ -528,13 +472,13 @@ class WaveletConvLayer(layers.Layer):
         im_c2 = inputs[:, 0::2, 1::2, :] # right up
         im_c3 = inputs[:, 1::2, 0::2, :] # left down
         im_c4 = inputs[:, 1::2, 1::2, :] # right right
-      
+
         LL = im_c1 + im_c2 + im_c3 + im_c4
         LH = -im_c1 - im_c2 + im_c3 + im_c4
         HL = -im_c1 + im_c2 - im_c3 + im_c4
         HH = im_c1 - im_c2 - im_c3 + im_c4
-        
-        result = tf.concat([LL, LH, HL, HH], 3) #(None, 96,96,12)    
+
+        result = tf.concat([LL, LH, HL, HH], 3)
         return result
 
     def compute_output_shape(self, input_shape):
@@ -557,7 +501,7 @@ class WaveletInvLayer(layers.Layer):
         LH = inputs[:, :, :, a:2*a]
         HL = inputs[:, :, :, 2*a:3*a]
         HH = inputs[:, :, :, 3*a:]
-        
+
         aa = LL - LH - HL + HH
         bb = LL - LH + HL - HH
         cc = LL + LH - HL - HH
@@ -738,3 +682,22 @@ def sobel_edges_d4(image):
     output = array_ops.reshape(output, shape=shape)
     output.set_shape(static_image_shape.concatenate([num_kernels]))
     return output
+
+def loss_func_v3(y_true, y_pred):
+    mae = losses.MAE
+    def sobel_process(y_true, y_pred, sobel_func):
+        sobel_pred = sobel_func(y_pred)*0.25
+        sobel_true = sobel_func(y_true)*0.25
+        dx_loss = mae(sobel_pred[:,:,:,:,0],sobel_true[:,:,:,:,0])
+        dy_loss = mae(sobel_pred[:,:,:,:,1],sobel_true[:,:,:,:,1])
+        dr_loss = mae(sobel_pred[:,:,:,:,2],sobel_true[:,:,:,:,2])
+        dl_loss = mae(sobel_pred[:,:,:,:,3],sobel_true[:,:,:,:,3])
+        return dx_loss+dy_loss+dr_loss+dl_loss
+    y_true = u_law(y_true)
+    y_pred = u_law(y_pred)
+    sobel_d1_loss = sobel_process(y_true, y_pred, sobel_edges)
+    sobel_d2_loss = sobel_process(y_true, y_pred, sobel_edges_d2)
+    sobel_d3_loss = sobel_process(y_true, y_pred, sobel_edges_d3)
+    sobel_d4_loss = sobel_process(y_true, y_pred, sobel_edges_d4)
+    mae_loss = mae(y_true, y_pred)
+    return mae_loss+sobel_d1_loss+sobel_d2_loss+sobel_d3_loss
