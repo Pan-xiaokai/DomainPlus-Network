@@ -10,6 +10,8 @@ numpy 1.19.1
 python 3.6  
 tensorflow 1.13  
 opencv-python 4.5.4  
+CUDA 10.0
+CUDA > 10 is not supportted
 
 
 1.download datasets: https://cseweb.ucsd.edu/ viscomp/projects/SIG17HDR/   
